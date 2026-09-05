@@ -1,0 +1,34 @@
+2026-09-05 13:17:00 │ INFO │ bot │ [gif] 6/7 animations ready in C:\Users\Jagrit khundia\Downloads\railway-bot\gifs
+2026-09-05 13:17:01 │ INFO │ bot │ ⚡ Bot @Stripe_chkrbot is running...
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_start
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_proxy
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_myproxy
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_rmproxy
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_freeproxy
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_freeproxylist
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_bin
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_sort
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_sortstop
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_sh
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_help
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: handle_plain_text
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: handle_private_document
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_ran
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_admin
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_unadmin
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_auth
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_unauth
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_ban
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_unban
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_key
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_redeem
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_nopecha
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_hit
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_broad
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_feedback
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_api
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_ban
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_unban
+2026-09-05 13:17:01 │ INFO │ bot │   📌 Registered handler: cmd_banned_list
+2026-09-05 13:17:01 │ INFO │ aiogram.dispatcher │ Start polling
+2026-09-05 13:17:01 │ INFO │ aiogram.dispatcher │ Run polling for bot @Stripe_chkrbot id=8641106277 - 'STRIPE 1$'
