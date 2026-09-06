@@ -5,6 +5,7 @@ Each node runs the Shopify checker Flask API on :5000 with /shopify endpoint.
 Routing uses least-connections + circuit-breaker with retries across healthy nodes.
 """
 
+import os
 import asyncio
 import aiohttp
 import time
@@ -15,10 +16,11 @@ log = logging.getLogger("shopify_bridge")
 log.setLevel(logging.DEBUG)
 
 # ── Node list ────────────────────────────────────────────────────────────────
-NODES = [
-    "https://hornyneonnew.up.railway.app",
-    "https://shopigey.up.railway.app",
-]
+# NOTE: never leave an empty string here — it gets picked as a node and every
+# request routed to it fails instantly, wasting half the attempts.
+NODES = [u for u in [
+    "http://hornyneon.up.railway.app",
+] if u.strip()]
 
 # ── Disabled nodes ────────────────────────────────────────────────────────────
 _disabled_nodes: set = set()
@@ -38,14 +40,18 @@ _state: dict = {
 
 _CIRCUIT_FAIL_THRESHOLD = 5
 _CIRCUIT_RESET_SECS = 20.0
-_REQUEST_TIMEOUT = 90
-_CONNECT_TIMEOUT = 10
+_REQUEST_TIMEOUT = 60
+_CONNECT_TIMEOUT = 8
 _HEALTH_PING_INTERVAL = 15
 
 # ── Global concurrency cap ───────────────────────────────────────────────────
-# Lower this if you run a single API node and see skips/timeouts.
-# Each in-flight request ties up the node; cap it so the API doesn't drown.
-MAX_CONCURRENT_REQUESTS = 8
+# Was 8 — that was the real speed cap. api.py runs under waitress with a large
+# thread pool and each check is ~10–15s wall time but almost all network wait,
+# so the node chews a lot in parallel. 400 keeps the Railway node saturated
+# with a 40–70 proxy pool (≈3 in-flight checks per proxy) without OOMing.
+# Override at runtime with BRIDGE_MAX_CONCURRENT.
+MAX_CONCURRENT_REQUESTS = int(os.environ.get("BRIDGE_MAX_CONCURRENT", "400"))
+
 _request_sem: asyncio.Semaphore | None = None
 
 

