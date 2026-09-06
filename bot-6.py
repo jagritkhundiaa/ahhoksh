@@ -179,7 +179,7 @@ log = logging.getLogger("bot")
 #  CONFIG
 # ══════════════════════════════════════════════════════════════════════════════
 
-TOKEN = "8641106277:AAH85Kp-AZkdBmKZ_A83UAhUySigbvtJC8s" 
+TOKEN = "8641106277:AAGqSQq9ZaLajqJLFuK8gc9hzQNCKcyctuk" 
 
 # ── Join requirements ─────────────────────────────────────────────────────────      # Replace with your channel ID
 join_chat_id = -1004351388607
@@ -1614,6 +1614,7 @@ async def cb_menu_gates(callback: types.CallbackQuery):
 
 
 @router.callback_query(F.data == "menu_close")
+
 async def cb_menu_close(callback: types.CallbackQuery):
     await callback.answer(f"{bold('Closed.')}")
     try:
